@@ -10,6 +10,8 @@ const { sequelize } = require('../models');
 const personajesRouter = require('./routes/personajes');
 const habilidadesRouter = require('./routes/habilidades');
 const usuariosRouter = require('./routes/usuarios');
+const requestLogger = require('./middlewares/requestLogger');
+const sanitizeIds   = require('./middlewares/sanitizeIds');
 
 // Creamos la aplicación Express
 const app = express();
@@ -23,6 +25,8 @@ const PORT = 3000;
 // Sin esta línea, req.body siempre sería undefined.
 // -------------------------------------------------------
 app.use(express.json());
+app.use(requestLogger);   // guarda cada llamada en la BD
+app.use(sanitizeIds);     // limpia los Id de todas las respuestas
 
 // -------------------------------------------------------
 // MONTAJE DE ROUTERS
