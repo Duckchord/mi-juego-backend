@@ -5,7 +5,7 @@ function stripIdSuffixes(data) {
   if (data !== null && typeof data === 'object') {
     const cleaned = {};
     for (const [key, value] of Object.entries(data)) {
-      if (key.endsWith('Id') || key.endsWith('_id')) continue;
+      if (key.endsWith('id') || key.endsWith('_id') || key.endsWith('Id')) continue;
       cleaned[key] = stripIdSuffixes(value);
     }
     return cleaned;
