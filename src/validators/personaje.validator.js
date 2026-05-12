@@ -5,7 +5,7 @@ exports.createRules = [
   body('nombre')
     .isString().notEmpty()
     .isLength({ max: 100 })
-    .withMessage('El nombre es ombligatorio y máximo 100 caracteres'),
+    .withMessage('El nombre es obligatorio y máximo 100 caracteres'),
   body('descripcion')
     .optional()
     .isString()
