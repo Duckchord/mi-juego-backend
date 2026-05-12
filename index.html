@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Juego - Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        #resultado {
+            margin-top: 20px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #userList {
+            list-style: none;
+            padding: 0;
+        }
+
+        #userList li {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Mi Juego Backend</h1>
+
+    <!-- Formulario de login -->
+    <h2>Login</h2>
+    <input type="text" id="nombre" placeholder="Nombre de usuario" />
+    <input type="password" id="contrasena" placeholder="Contraseña" />
+    <button onclick="login()">Iniciar sesión</button>
+    <button onclick="cerrarSesion()">Cerrar sesión</button>
+
+    <script>
+        function cerrarSesion() {
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('role');
+            document.getElementById('resultado').innerHTML = ' Sesión cerrada';
+            document.getElementById('userList').innerHTML = '';
+            document.getElementById('personajeList').innerHTML = '';
+        }
+    </script>
+
+    <div id="resultado"></div>
+
+    <!-- Sección de usuarios (solo ADMIN) -->
+    <h2>Lista de Usuarios (solo ADMIN)</h2>
+    <button onclick="cargarUsuarios()">Cargar Usuarios</button>
+    <ul id="userList"></ul>
+
+    <!-- Sección de personajes -->
+    <h2>Lista de Personajes</h2>
+    <button onclick="cargarPersonajes()">Cargar Personajes</button>
+    <ul id="personajeList"></ul>
+
+    <script>
+        // ─── LOGIN ───────────────────────────────────────────────
+        async function login() {
+            const nombre = document.getElementById('nombre').value;
+            const contrasena = document.getElementById('contrasena').value;
+            const resultado = document.getElementById('resultado');
+
+            try {
+                const response = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, contrasena })
+                });
+
+                if (!response.ok) throw new Error('Credenciales inválidas');
+
+                const data = await response.json();
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('role', data.user.role);
+
+                resultado.innerHTML = `
+          <strong>✅ Login exitoso</strong><br>
+          Usuario: ${data.user.nombre}<br>
+          Rol: ${data.user.role}<br>
+          Token guardado en sessionStorage
+        `;
+            } catch (err) {
+                resultado.innerHTML = `<strong> Error:</strong> ${err.message}`;
+            }
+        }
+
+        // ─── CARGAR USUARIOS (solo ADMIN) ────────────────────────
+        async function cargarUsuarios() {
+            const token = sessionStorage.getItem('token');
+            const list = document.getElementById('userList');
+
+            if (!token) {
+                list.innerHTML = `<li> Debes iniciar sesión primero</li>`;
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/api/usuarios', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 401) throw new Error('No autenticado - haz login primero');
+                if (response.status === 403) throw new Error('Acceso prohibido - necesitas rol ADMIN');
+                if (!response.ok) throw new Error('Error al cargar usuarios');
+
+                const usuarios = await response.json();
+                list.innerHTML = usuarios.map(u => `<li> ${u.nombre} — ${u.role}</li>`).join('');
+            } catch (err) {
+                list.innerHTML = `<li> ${err.message}</li>`;
+            }
+        }
+
+        // ─── CARGAR PERSONAJES ───────────────────────────────────
+        async function cargarPersonajes() {
+            const token = sessionStorage.getItem('token');
+            const list = document.getElementById('personajeList');
+            if (!token) {
+                list.innerHTML = `<li> Debes iniciar sesión primero</li>`;
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/api/personajes', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 401) throw new Error('No autenticado - haz login primero');
+                if (!response.ok) throw new Error('Error al cargar personajes');
+
+                const personajes = await response.json();
+                list.innerHTML = personajes.map(p => `<li> ${p.nombre}</li>`).join('');
+            } catch (err) {
+                list.innerHTML = `<li>   ${err.message}</li>`;
+            }
+        }
+    </script>
+
+
+
+</body>
+
+</html>

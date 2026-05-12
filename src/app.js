@@ -4,9 +4,13 @@ require('dotenv').config();
 // Aquí configuramos el servidor y montamos los routers.
 
 const express = require('express');
+const cors = require('cors');
 const { sequelize } = require('../models');
 
 // Importamos los routers que creamos en /routes
+const authRouter = require('./routes/auth');
+const authJwt = require('./middlewares/authJwt');
+const requireRole = require('./middlewares/requireRole');
 const personajesRouter = require('./routes/personajes');
 const habilidadesRouter = require('./routes/habilidades');
 const usuariosRouter = require('./routes/usuarios');
@@ -27,6 +31,8 @@ const PORT = 3000;
 app.use(express.json());
 app.use(requestLogger);   // guarda cada llamada en la BD
 app.use(sanitizeIds);     // limpia los Id de todas las respuestas
+app.use(cors());
+app.use(express.json());
 
 // -------------------------------------------------------
 // MONTAJE DE ROUTERS
@@ -35,9 +41,11 @@ app.use(sanitizeIds);     // limpia los Id de todas las respuestas
 //  deja que personajesRouter la maneje."
 // Dentro del router, las rutas son relativas a este prefijo.
 // -------------------------------------------------------
-app.use('/api/personajes', personajesRouter);
-app.use('/api/habilidades', habilidadesRouter);
-app.use('/api/usuarios', usuariosRouter);
+
+app.use('/api/personajes', authJwt, personajesRouter);
+app.use('/api/habilidades', authJwt, habilidadesRouter);
+app.use('/api/usuarios', authJwt, requireRole('ADMIN'), usuariosRouter);
+app.use('/api', authRouter);
 
 // -------------------------------------------------------
 // RUTA DE BIENVENIDA
