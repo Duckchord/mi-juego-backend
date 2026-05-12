@@ -3,90 +3,79 @@ require('dotenv').config();
 // Archivo principal de la aplicación Express.
 // Aquí configuramos el servidor y montamos los routers.
 
+const path = require('path');
 const express = require('express');
 const { sequelize } = require('../models');
 
-// Importamos los routers que creamos en /routes
+// Routers
 const personajesRouter = require('./routes/personajes');
 const habilidadesRouter = require('./routes/habilidades');
 const usuariosRouter = require('./routes/usuarios');
+const authRouter = require('./routes/auth');
+
+// Middlewares
 const requestLogger = require('./middlewares/requestLogger');
 const sanitizeIds   = require('./middlewares/sanitizeIds');
+const authJwt      = require('./middlewares/authJwt');
+const requireRole  = require('./middlewares/requireRole');
 
-// Creamos la aplicación Express
 const app = express();
 const PORT = 3000;
 
 // -------------------------------------------------------
-// MIDDLEWARE
-// Un middleware es una función que procesa la petición
-// antes de que llegue a la ruta. Este le dice a Express
-// que entienda los cuerpos en formato JSON.
-// Sin esta línea, req.body siempre sería undefined.
+// MIDDLEWARES GLOBALES
 // -------------------------------------------------------
 app.use(express.json());
-app.use(requestLogger);   // guarda cada llamada en la BD
-app.use(sanitizeIds);     // limpia los Id de todas las respuestas
+app.use(requestLogger);   // pre: guarda cada llamada en la BD
+app.use(sanitizeIds);     // post: limpia IDs de las respuestas
+
+// Frontend estático (sirve public/ para que la demo del frontend funcione
+// sin problemas de CORS, ya que vive en el mismo dominio que la API)
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // -------------------------------------------------------
-// MONTAJE DE ROUTERS
-// app.use('/api/personajes', personajesRouter) significa:
-// "Cuando llegue una petición a /api/personajes,
-//  deja que personajesRouter la maneje."
-// Dentro del router, las rutas son relativas a este prefijo.
+// RUTAS PÚBLICAS (no requieren token)
 // -------------------------------------------------------
-app.use('/api/personajes', personajesRouter);
-app.use('/api/habilidades', habilidadesRouter);
-app.use('/api/usuarios', usuariosRouter);
+app.use('/api', authRouter);   // /api/login, /api/register, /api/me
+
+// -------------------------------------------------------
+// RUTAS PROTEGIDAS (requieren token JWT válido)
+// -------------------------------------------------------
+app.use('/api/personajes', authJwt, personajesRouter);
+app.use('/api/habilidades', authJwt, habilidadesRouter);
+
+// /api/usuarios además requiere rol ADMIN
+app.use('/api/usuarios', authJwt, requireRole('ADMIN'), usuariosRouter);
 
 // -------------------------------------------------------
 // RUTA DE BIENVENIDA
-// Una ruta simple para verificar que el servidor funciona.
 // -------------------------------------------------------
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.status(200).json({
     mensaje: 'API de Juego de Rol funcionando ✅',
-    rutas_disponibles: [
-      'GET    /api/personajes',
-      'GET    /api/personajes?nombre=ar',
-      'GET    /api/personajes?tipo=guerrero',
-      'GET    /api/personajes/:id',
-      'POST   /api/personajes',
-      'PUT    /api/personajes/:id',
-      'DELETE /api/personajes/:id',
-      'GET    /api/personajes/:id/habilidades',
-      'GET    /api/habilidades',
-      'GET    /api/habilidades?orden=estamina',
-      'GET    /api/habilidades/:id',
-      'POST   /api/habilidades',
-      'PUT    /api/habilidades/:id',
-      'DELETE /api/habilidades/:id',
+    rutas_publicas: [
+      'POST /api/login',
+      'POST /api/register',
+    ],
+    rutas_protegidas: [
+      'GET /api/me                            (cualquier usuario autenticado)',
+      'GET|POST|PUT|DELETE /api/personajes    (cualquier usuario autenticado)',
+      'GET|POST|PUT|DELETE /api/habilidades   (cualquier usuario autenticado)',
+      'GET /api/usuarios/:id/personajes       (solo ADMIN)',
     ],
   });
 });
 
 // -------------------------------------------------------
-// MIDDLEWARE DE 404 GLOBAL
-// Si ninguna ruta anterior respondió, esta captura
-// cualquier URL que no exista y devuelve un 404 claro.
+// MANEJADOR DE ERRORES (siempre al final)
 // -------------------------------------------------------
-// Middleware global de manejo de errores (siempre al final)
-
 app.use((err, req, res, next) => {
-
   console.error(err);
-
   res.status(500).json({ error: 'Error interno del servidor' });
-
 });
 
-
 // Verifica conexión y arranca
-
 (async () => {
-
   await sequelize.authenticate();
-
   app.listen(PORT, () => console.log(`Servidor en http://localhost:${PORT}`));
-
 })();
