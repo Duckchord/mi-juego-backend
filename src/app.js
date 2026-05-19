@@ -73,6 +73,13 @@ app.get('/', (req, res) => {
   });
 });
 
+// app.js
+app.get('/authors', (req, res) => {
+  res.json([
+    { nombre: 'Juan Salas', codigo: '0000325184' },
+    { nombre: 'Samuel Blanco', codigo: '0000349904' }
+  ]);
+});
 // -------------------------------------------------------
 // MIDDLEWARE DE 404 GLOBAL
 // Si ninguna ruta anterior respondió, esta captura
