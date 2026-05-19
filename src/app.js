@@ -33,7 +33,7 @@ app.use(requestLogger);   // guarda cada llamada en la BD
 app.use(sanitizeIds);     // limpia los Id de todas las respuestas
 app.use(cors());
 app.use(express.json());
-
+app.use(express.static('public'));
 // -------------------------------------------------------
 // MONTAJE DE ROUTERS
 // app.use('/api/personajes', personajesRouter) significa:
@@ -51,7 +51,7 @@ app.use('/api', authRouter);
 // RUTA DE BIENVENIDA
 // Una ruta simple para verificar que el servidor funciona.
 // -------------------------------------------------------
-app.get('/', (req, res) => {
+app.get('/api/rutas', (req, res) => {
   res.status(200).json({
     mensaje: 'API de Juego de Rol funcionando ✅',
     rutas_disponibles: [
@@ -77,9 +77,11 @@ app.get('/', (req, res) => {
 app.get('/authors', (req, res) => {
   res.json([
     { nombre: 'Juan Salas', codigo: '0000325184' },
-    { nombre: 'Samuel Blanco', codigo: '0000349904' }
+    { nombre: 'Samuel Blanco  ', codigo: '0000349904' }
   ]);
 });
+
+
 // -------------------------------------------------------
 // MIDDLEWARE DE 404 GLOBAL
 // Si ninguna ruta anterior respondió, esta captura
